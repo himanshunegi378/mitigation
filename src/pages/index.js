@@ -1,9 +1,14 @@
 import Head from "next/head";
 import { useImmer } from "use-immer";
 import dummyResponse from "@/util/dummyresponse";
-import { memo, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { useTableData } from "@/contexts/dataContext";
 import { useRouter } from "next/router";
+import {
+  fetchScreenRiskWeight,
+  updateScreenQuestionMatrix,
+  uploadScreenQuestionMatrix,
+} from "@/api";
 
 // This component is made to just memoize the Row and improve performance of each row by preventing re-rendering
 const Row = memo(function Row({ row, i, setTableData }) {
@@ -15,8 +20,25 @@ const Row = memo(function Row({ row, i, setTableData }) {
             type="text"
             value={cell}
             onChange={(e) => {
+              const value = e.target.value;
               setTableData((draft) => {
-                draft.rows[i][j] = e.target.value;
+                // check if number using regex
+                // if last character is dot, then is string
+                if (value.slice(-1) === ".") {
+                  draft.rows[i][j] = value;
+                  return;
+                }
+
+                if (value.match(/^-?\d*\.?\d*$/)) {
+                  // is decimal
+                  if (e.target.value.match(/^-?\d*\.?\d*$/)) {
+                    draft.rows[i][j] = parseFloat(value);
+                  } else {
+                    draft.rows[i][j] = parseInt(value);
+                  }
+                } else {
+                  draft.rows[i][j] = value;
+                }
               });
             }}
           />
@@ -29,7 +51,22 @@ const Row = memo(function Row({ row, i, setTableData }) {
 export default function Home() {
   const router = useRouter();
   const { tableData, setTableData } = useTableData();
+  const inputRef = useRef();
   const [excelFile, setExcelFile] = useState(null);
+
+  const handleSubmit = async () => {
+    if (excelFile) {
+      const formData = new FormData();
+      formData.append("file", excelFile);
+      await uploadScreenQuestionMatrix(formData);
+      inputRef.current.value = "";
+      setExcelFile(null);
+      fetchScreenRiskWeight().then(setTableData);
+    } else {
+      await updateScreenQuestionMatrix(tableData);
+      router.push("/mitigation");
+    }
+  };
   return (
     <>
       <Head>
@@ -76,18 +113,13 @@ export default function Home() {
         </div>
         <div>
           <input
+            ref={inputRef}
             type="file"
             onChange={(e) => setExcelFile(e.target.files[0])}
             accept={".xlsx, .xls, .csv"}
           />
         </div>
-        <button
-          onClick={() => {
-            router.push("/mitigation");
-          }}
-        >
-          Submit Data
-        </button>
+        <button onClick={handleSubmit}>Submit Data</button>
       </main>
     </>
   );

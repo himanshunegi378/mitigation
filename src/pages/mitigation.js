@@ -3,6 +3,7 @@ import { useImmer } from "use-immer";
 import dummyResponse from "@/util/dummyresponse";
 import { useEffect, useState } from "react";
 import { useTableData } from "@/contexts/dataContext";
+import { fetchAssetRisk } from "@/api";
 
 /*
  props: {
@@ -84,7 +85,7 @@ const parseResponse = (response) => {
         id: screenId,
         text: screenText,
         questions: [],
-        mitigation: {},
+        // mitigation: {},
       };
     }
     const screen = screens[screenId];
@@ -110,28 +111,60 @@ const parseResponse = (response) => {
         value: answerId,
       });
     }
-    if (!screen.mitigation[questionId]) {
-      screen.mitigation[questionId] = {};
-    }
-    screen.mitigation[questionId][answerId] = mitigationValueSum;
+    // if (!screen.mitigation[questionId]) {
+    //   screen.mitigation[questionId] = {};
+    // }
+    // screen.mitigation[questionId][answerId] = mitigationValueSum;
   }
   return { screens };
 };
 export default function Mitigation() {
   const { tableData, setTableData } = useTableData();
+  const [response, setResponse] = useState(undefined);
   //   same as return of parseResponse but questions will have selected key denoting currently selected answer
   const [screens, setScreens] = useImmer({});
   useEffect(() => {
     setScreens(parseResponse(tableData).screens);
   }, [setScreens, tableData]);
-  /*
-  {
-    [question.id]: {
-        [answer.id]: mitigationValue
+
+  const handleSubmit = (e) => {
+    /*
+   {
+  "screen_questions": [
+    {
+      "screen_name": "string",
+      "questions_response": [
+        {
+          "question_id": number,
+          "answer_value": number
+        }
+      ]
     }
-  }
-  */
-  const [mitigationData] = useState({});
+  ]
+}
+    */
+    const screenQuestions = Object.values(screens)
+      .map((screen) => {
+        return {
+          screen_name: screen.text,
+          questions_response: screen.questions
+            .filter((question) => {
+              return "selected" in question;
+            })
+            .map((question) => {
+              return {
+                question_id: parseInt(question.id),
+                answer_value: parseInt(question.selected),
+              };
+            }),
+        };
+      })
+      .filter((screen) => screen.questions_response.length > 0);
+
+    fetchAssetRisk({
+      screen_questions: screenQuestions,
+    }).then(setResponse);
+  };
   return (
     <>
       <Head>
@@ -171,6 +204,14 @@ export default function Mitigation() {
               </div>
             );
           })}
+        </div>
+        <div>
+          <button onClick={handleSubmit}>Submit</button>
+        </div>
+        <div>
+          {typeof response === "object" && (
+            <pre>{JSON.stringify(response, null, 2)}</pre>
+          )}
         </div>
       </main>
     </>
