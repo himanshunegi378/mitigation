@@ -4,6 +4,7 @@ import dummyResponse from "@/util/dummyresponse";
 import { useEffect, useState } from "react";
 import { useTableData } from "@/contexts/dataContext";
 import { fetchAssetRisk } from "@/api";
+import { Box, Button, Input, Radio, RadioGroup, Text } from "@chakra-ui/react";
 
 /*
  props: {
@@ -24,31 +25,32 @@ export function QuestionBlock(props) {
 
   return (
     <div>
-      <h3>{question}</h3>
-      <div>
-        {answers.map((answer, i) => {
-          return (
-            <div key={i}>
-              <input
-                type="radio"
-                name={randomString}
-                id={randomString + id + answer.id}
-                value={answer.value}
-                checked={selected === answer.id}
-                onChange={(e) => {
-                  onAnswerChange(answer);
-                }}
-              />
-              <label
-                htmlFor={randomString + id + answer.id}
-                title={answer.longText}
-              >
-                {answer.text}
-              </label>
-            </div>
-          );
-        })}
-      </div>
+      <Text fontSize="xl" fontWeight="semibold">
+        {question}
+      </Text>
+      <Box pl="4">
+        <RadioGroup value={selected}>
+          {answers.map((answer, i) => {
+            return (
+              <div key={i}>
+                <Radio
+                  value={answer.value}
+                  // name={randomString}
+                  id={randomString + id + answer.id}
+                  checked={selected === answer.id}
+                  onChange={(e) => {
+                    onAnswerChange(answer);
+                  }}
+                >
+                  <Text fontSize="md" fontWeight="semibold">
+                    {answer.text}
+                  </Text>
+                </Radio>
+              </div>
+            );
+          })}
+        </RadioGroup>
+      </Box>
     </div>
   );
 }
@@ -178,7 +180,9 @@ export default function Mitigation() {
           {Object.values(screens).map((screen, i) => {
             return (
               <div key={screen.id}>
-                <h2
+                <Text
+                  fontSize="3xl"
+                  fontWeight="semibold"
                   style={{
                     position: "sticky",
                     top: 0,
@@ -187,26 +191,29 @@ export default function Mitigation() {
                   }}
                 >
                   {screen.text}
-                </h2>
-                {screen.questions.map((question, i) => {
-                  return (
-                    <QuestionBlock
-                      key={i}
-                      {...question}
-                      onAnswerChange={(answer) => {
-                        setScreens((draft) => {
-                          draft[screen.id].questions[i].selected = answer.id;
-                        });
-                      }}
-                    />
-                  );
-                })}
+                </Text>
+                <Box pl="4">
+                  {screen.questions.map((question, i) => {
+                    const handleAnswerChange = (answer) => {
+                      setScreens((draft) => {
+                        draft[screen.id].questions[i].selected = answer.id;
+                      });
+                    };
+                    return (
+                      <QuestionBlock
+                        key={i}
+                        {...question}
+                        onAnswerChange={handleAnswerChange}
+                      />
+                    );
+                  })}
+                </Box>
               </div>
             );
           })}
         </div>
         <div>
-          <button onClick={handleSubmit}>Submit</button>
+          <Button onClick={handleSubmit}>Submit</Button>
         </div>
         <div>
           {typeof response === "object" && (

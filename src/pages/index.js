@@ -9,6 +9,8 @@ import {
   updateScreenQuestionMatrix,
   uploadScreenQuestionMatrix,
 } from "@/api";
+import { Button, Input } from "@chakra-ui/react";
+import { Delay } from "@/components/Delay";
 
 // This component is made to just memoize the Row and improve performance of each row by preventing re-rendering
 const Row = memo(function Row({ row, i, setTableData }) {
@@ -16,7 +18,8 @@ const Row = memo(function Row({ row, i, setTableData }) {
     <tr>
       {row.map((cell, j) => (
         <td key={j}>
-          <input
+          <Input
+            minW="xs"
             type="text"
             value={cell}
             onChange={(e) => {
@@ -24,6 +27,11 @@ const Row = memo(function Row({ row, i, setTableData }) {
               setTableData((draft) => {
                 // check if number using regex
                 // if last character is dot, then is string
+                if (value === "") {
+                  draft.rows[i][j] = "";
+                  return;
+                }
+
                 if (value.slice(-1) === ".") {
                   draft.rows[i][j] = value;
                   return;
@@ -105,21 +113,23 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {tableData.rows.map((row, i) => (
-                <Row key={i} row={row} i={i} setTableData={setTableData} />
-              ))}
+              <Delay>
+                {tableData.rows.map((row, i) => (
+                  <Row key={i} row={row} i={i} setTableData={setTableData} />
+                ))}
+              </Delay>
             </tbody>
           </table>
         </div>
         <div>
-          <input
+          <Input
             ref={inputRef}
             type="file"
             onChange={(e) => setExcelFile(e.target.files[0])}
             accept={".xlsx, .xls, .csv"}
           />
         </div>
-        <button onClick={handleSubmit}>Submit Data</button>
+        <Button onClick={handleSubmit}>Save</Button>
       </main>
     </>
   );
